@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#183153"><title>FUI - Formato editable</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef1f5;color:#172033}
+header{position:sticky;top:0;z-index:5;background:#183153;color:white;padding:10px 12px;box-shadow:0 2px 8px #0003}
+h1{font-size:17px;margin:0 0 8px}.tools{display:flex;gap:6px;flex-wrap:wrap}
+button{border:0;border-radius:7px;padding:10px 11px;font-weight:700;background:#fff;color:#183153;touch-action:manipulation}
+button.active{background:#f4c542;color:#111}button.primary{background:#1f8b4c;color:white}button.danger{background:#b42318;color:white}
+.note{font-size:12px;line-height:1.4;margin-top:7px;color:#e7edf7}
+main{padding:12px;display:flex;justify-content:center}
+#page{position:relative;width:min(100%,800px);aspect-ratio:612/792;background:white;box-shadow:0 2px 12px #0002;overflow:hidden;touch-action:pan-y}
+#bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#layer{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.entry{position:absolute;transform:translate(-2px,-50%);font:16px Arial,sans-serif;color:#111;white-space:pre-wrap;overflow-wrap:anywhere;max-width:45%;line-height:1.1;pointer-events:none}
+.checkmark{position:absolute;transform:translate(-50%,-55%);font:bold 22px Arial;color:#111;pointer-events:none}
+.sig{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+@media print{
+ @page{size:letter portrait;margin:0}
+ body{background:white;margin:0}
+ header,.no-print{display:none!important}
+ main{padding:0;margin:0;display:block}
+ #page{width:8.5in;height:11in;aspect-ratio:auto;box-shadow:none;margin:0;break-inside:avoid}
+ #bg{width:100%;height:100%}
+ .entry{font-size:11pt}
+}
+</style></head>
+<body>
+<header class="no-print">
+<h1>Formato Único de Ingreso (FUI) — editor</h1>
+<div class="tools">
+<button id="textBtn" class="active">＋ Texto</button>
+<button id="checkBtn">✓ Check</button>
+<button id="signBtn">✍ Firma</button>
+<button id="eraseBtn">⌫ Borrar elemento</button>
+<button id="undoBtn">↶ Deshacer</button>
+<button id="clearBtn" class="danger">Limpiar llenado</button>
+<button id="pdfBtn" class="primary">Exportar PDF carta</button>
+</div>
+<div class="note" id="status">Modo Texto: toca un lugar de la plantilla y escribe el texto. Para firma, dibuja con el dedo.</div>
+</header>
+<main><div id="page"><img id="bg" src="plantilla.png" alt="Plantilla FUI"><div id="layer"></div></div></main>
+<script>
+const page=document.getElementById('page'), layer=document.getElementById('layer'), status=document.getElementById('status');
+let mode='text', items=[], history=[], currentStroke=null, eraseTarget=null;
+const buttons={text:document.getElementById('textBtn'),check:document.getElementById('checkBtn'),sign:document.getElementById('signBtn'),erase:document.getElementById('eraseBtn')};
+function setMode(m){mode=m;Object.values(buttons).forEach(b=>b.classList.remove('active'));if(buttons[m])buttons[m].classList.add('active');
+status.textContent={text:'Modo Texto: toca un lugar de la plantilla y escribe el texto.',check:'Modo Check: toca el círculo o lugar donde quieras marcar ✓.',sign:'Modo Firma: dibuja con el dedo o lápiz sobre la plantilla; levanta el dedo para terminar.',erase:'Modo Borrar: toca un texto, check o firma para eliminarlo.'}[m];}
+buttons.text.onclick=()=>setMode('text');buttons.check.onclick=()=>setMode('check');buttons.sign.onclick=()=>setMode('sign');buttons.erase.onclick=()=>setMode('erase');
+function pos(e){let r=page.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
+function saveHistory(){history.push(JSON.stringify(items));if(history.length>50)history.shift();}
+function render(){
+ layer.innerHTML='';
+ items.forEach((it,i)=>{
+  if(it.type==='text'){let el=document.createElement('div');el.className='entry';el.textContent=it.value;el.style.left=(it.x*100)+'%';el.style.top=(it.y*100)+'%';el.style.fontSize=(it.size||16)+'px';el.dataset.idx=i;layer.appendChild(el);}
+  else if(it.type==='check'){let el=document.createElement('div');el.className='checkmark';el.textContent='✓';el.style.left=(it.x*100)+'%';el.style.top=(it.y*100)+'%';el.dataset.idx=i;layer.appendChild(el);}
+  else if(it.type==='sig'){let c=document.createElement('canvas');c.className='sig';c.width=1200;c.height=1553;c.dataset.idx=i;let ctx=c.getContext('2d');ctx.strokeStyle='#111';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();it.points.forEach((p,j)=>{let x=p.x*1200,y=p.y*1553;j?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();layer.appendChild(c);}
+ });
+}
+layer.addEventListener('click',e=>{
+ if(mode==='sign')return;
+ let p=pos(e);
+ if(mode==='text'){let v=prompt('Escribe el texto:');if(v===null||!v.trim())return;saveHistory();items.push({type:'text',x:p.x,y:p.y,value:v.trim(),size:16});render();}
+ else if(mode==='check'){saveHistory();items.push({type:'check',x:p.x,y:p.y});render();}
+ else if(mode==='erase'){let el=e.target.closest('[data-idx]');if(!el){status.textContent='Toca directamente un texto, check o firma para borrarlo.';return;}saveHistory();items.splice(Number(el.dataset.idx),1);render();}
+});
+layer.addEventListener('pointerdown',e=>{if(mode!=='sign')return;e.preventDefault();layer.setPointerCapture(e.pointerId);let p=pos(e);currentStroke={type:'sig',points:[p]};items.push(currentStroke);});
+layer.addEventListener('pointermove',e=>{if(!currentStroke)return;e.preventDefault();currentStroke.points.push(pos(e));render();});
+layer.addEventListener('pointerup',e=>{if(currentStroke){history.push(JSON.stringify(items.slice(0,-1)));currentStroke=null;render();}});
+document.getElementById('undoBtn').onclick=()=>{if(!history.length)return;items=JSON.parse(history.pop());render();};
+document.getElementById('clearBtn').onclick=()=>{if(confirm('¿Eliminar todos los textos, checks y firmas?')){saveHistory();items=[];render();}};
+document.getElementById('pdfBtn').onclick=()=>{setMode('text');if(window.AndroidBridge){window.AndroidBridge.printPage();}else{window.print();}};
+window.addEventListener('beforeprint',()=>{document.querySelectorAll('.entry').forEach(e=>e.style.fontSize='11pt')});
+window.addEventListener('afterprint',()=>render());
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>

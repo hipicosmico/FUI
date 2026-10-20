@@ -1,0 +1,31 @@
+EDITOR FUI — PROYECTO ANDROID NATIVO
+===================================
+Esta carpeta contiene el proyecto fuente para generar un APK instalable. En este entorno no está instalado Android SDK/Gradle, por lo que no puedo compilar ni verificar un APK binario aquí. El proyecto se prepara para compilarlo con Android Studio.
+
+FUNCIONES
+- Plantilla FUI original como fondo.
+- Añadir texto tocando el lugar deseado.
+- Colocar checks.
+- Firma táctil con el dedo.
+- Borrar elemento, deshacer y limpiar el llenado.
+- Exportar/imprimir usando el diálogo nativo de Android, con papel Carta (Letter) y márgenes sin espacio.
+
+GENERAR EL APK
+1. Instala Android Studio en una computadora y abre esta carpeta como proyecto existente.
+2. Acepta instalar Android SDK Platform 35 y sincroniza Gradle cuando lo solicite.
+3. Menú Build > Build Bundle(s) / APK(s) > Build APK(s).
+4. Al terminar, usa el enlace "locate" de Android Studio. Normalmente el archivo queda en app/build/outputs/apk/debug/app-debug.apk.
+5. Copia el APK al teléfono Android y ábrelo para instalar. Si Android lo solicita, autoriza temporalmente "Instalar apps desconocidas" para la aplicación que abre el archivo.
+
+NOTAS IMPORTANTES
+- El botón PDF abre el diálogo de impresión de Android. Selecciona Guardar como PDF si deseas un archivo PDF, o una impresora disponible para imprimir.
+- La salida está configurada para papel Carta vertical.
+- Esta versión no guarda automáticamente formularios cerrados ni ofrece catálogo de expedientes.
+- El proyecto requiere Android Studio/SDK para producir el APK; no se incluye un APK precompilado en este ZIP.
+
+OPCIÓN DE COMPILACIÓN AUTOMÁTICA EN GITHUB
+- Sube el contenido de esta carpeta a un repositorio de GitHub.
+- Abre la pestaña Actions y ejecuta "Build Editor FUI APK" (Run workflow), o haz push a main/master.
+- Al terminar, descarga el artefacto "EditorFUI-debug-apk" de la ejecución.
+- Ese APK estará firmado con la clave de depuración automática de Android (apto para pruebas/instalación directa, no es una firma privada de distribución).
+- Para una firma de distribución propia, genera y protege tu keystore personal; no compartas contraseñas ni el keystore públicamente.
